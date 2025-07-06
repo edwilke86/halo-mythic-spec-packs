@@ -8,7 +8,7 @@ A drop-in macro for Foundry VTT (Pf2e/Halo Mythic Foundry) that automates:
 - **Compendium-UUID Sourcing**: Pulls abilities directly by UUID, avoiding name-lookup issues.  
 - **Clean Slate**: Strips out any existing Spec-Kit items and resets those skills to “none” before applying the new kit.  
 - **Difficulty & Wounds**: Updates `system.difficulty.tier` to match the chosen level and auto-tops off current Wounds to the new max.  
-- **Manual Prompts**: Reminds the GM to handle “Enemy Language” and “Chosen Education +5” where needed.  
+- **Manual Prompts**: Reminds the User to handle “Enemy Language” and “Chosen Education +5” where needed.  
 
 ## Installation
 
@@ -36,6 +36,8 @@ A drop-in macro for Foundry VTT (Pf2e/Halo Mythic Foundry) that automates:
 - **Skill Keys**: Extend the `skillKeyMap` if you add new skills or variant names.  
 - **Additional Kits**: Add or modify kits by updating the `specializationData` object arrays.  
 
+## Todo List
+- **Prompts** with queries for **languages** and **educations** within the process, rather than still having to manually assign those. 
+
 ---
 
-Feel free to adjust any section to match your project conventions or add badges, screenshots, or usage GIFs!
