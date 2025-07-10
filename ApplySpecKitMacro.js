@@ -1,5 +1,5 @@
 // === APPLY SPECIALIZATION KIT & BESTIARY LEVEL MACRO ===
-// Author: Neo Shain (with lots of help from ChatGPT and CoPilot) | For Halo Mythic Foundry campaign
+// Author: Neo Shain | For Halo Mythic Foundry campaign
 
 (async () => {
   // ── 0) Require a token selection
@@ -7,40 +7,56 @@
     return ui.notifications.warn("Please select at least one token.");
   }
 
-  // ── 1) Pick your kit
-  const specKits = [
-    "Heavy Weapons","Vehicle Expert","Marksman","Close Quarters",
-    "Battlefield Medic","Demolitions","Technician/Comms",
-    "Point Man","Recon/Infiltration","Resource/Support",
-    "Duelist","Command","Logistics","Medical Physician"
-  ];
-  const selectedSpec = await new Promise(resolve => {
-    new Dialog({
-      title: "Select Specialization Kit",
-      content: "<p>Select which Specialization Kit to apply:</p>",
-      buttons: specKits.reduce((o, kit) => {
-        o[kit] = { label: kit, callback: () => { resolve(kit); return true; }};
-        return o;
-      }, {}),
-      default: specKits[0]
-    }).render(true);
-  });
+  // ── 1) Prompt for BR (Difficulty Level) ──
+const brLevels = ["Easy", "Normal", "Heroic", "Legendary", "Nemesis"];
+const brTierMap = { Easy: 0, Normal: 1, Heroic: 2, Legendary: 3, Nemesis: 4 };
+const brLevel = await new Promise(resolve => {
+  new Dialog({
+    title: "Set BR (Difficulty Level)?",
+    content: `<p><strong>BR Level is separate from Specialization Kit Level.</strong><br>
+      Please select the BR (Difficulty Level) for this actor:</p>`,
+    buttons: brLevels.reduce((o, lvl) => {
+      o[lvl] = { label: lvl, callback: () => { resolve(lvl); return true; }};
+      return o;
+    }, {}),
+    default: "Normal"
+  }).render(true);
+});
 
-  // ── 2) Pick your Bestiary Level
-  const levels = ["Easy","Normal","Heroic","Legendary"];
-  const bestiaryLevel = await new Promise(resolve => {
-    new Dialog({
-      title: "Select Bestiary Level",
-      content: "<p>Select Bestiary Level to apply:</p>",
-      buttons: levels.reduce((o, lvl) => {
-        o[lvl] = { label: lvl, callback: () => { resolve(lvl); return true; }};
-        return o;
-      }, {}),
-      default: "Normal"
-    }).render(true);
-  });
+// ── 2) Pick your Specialization Kit
+const specKits = [
+  "Heavy Weapons","Vehicle Expert","Marksman","Close Quarters",
+  "Battlefield Medic","Demolitions","Technician/Comms",
+  "Point Man","Recon/Infiltration","Resource/Support",
+  "Duelist","Command","Logistics","Medical Physician"
+];
+const selectedSpec = await new Promise(resolve => {
+  new Dialog({
+    title: "Select Specialization Kit",
+    content: "<p>Select which Specialization Kit to apply:</p>",
+    buttons: specKits.reduce((o, kit) => {
+      o[kit] = { label: kit, callback: () => { resolve(kit); return true; }};
+      return o;
+    }, {}),
+    default: specKits[0]
+  }).render(true);
+});
 
-  // ── 3) Prompt any follow-ups for variants
+// ── 3) Pick your Specialization Kit Level
+const kitLevels = ["None","Normal","Heroic","Legendary"];
+const specializationKitLevel = await new Promise(resolve => {
+  new Dialog({
+    title: "Select Specialization Kit Level",
+    content: "<p>Select Specialization Kit Level to apply:</p>",
+    buttons: kitLevels.reduce((o, lvl) => {
+      o[lvl] = { label: lvl, callback: () => { resolve(lvl); return true; }};
+      return o;
+    }, {}),
+    default: "Normal"
+  }).render(true);
+});
+
+  // ── 4) Prompt any follow-ups for variants
   let pilotVariant, navVariant, techVariant, medVariant;
   // a) Pilot / Nav / Tech for Vehicle Expert
   if (selectedSpec === "Vehicle Expert") {
@@ -150,7 +166,7 @@
     });
   }
 
-  // ── 4) Your Specialization Data
+  // ── 5) Your Specialization Data
   //    Replace or tweak these arrays if you want to adjust names/items
   const specializationData = { // the name field is the UUID, not the name, this is important! 
     "Heavy Weapons": {
@@ -519,14 +535,14 @@
     }
   };
 
-  // ── 5) Build cumulative tiers (Easy → none)
-  const cumulative = [];
-  if (bestiaryLevel !== "Easy")          cumulative.push("Normal");
-  if (["Heroic","Legendary"].includes(bestiaryLevel)) cumulative.push("Heroic");
-  if (bestiaryLevel === "Legendary")     cumulative.push("Legendary");
-  const levelsToApply = [...new Set(cumulative)];
+// ── 6) Build cumulative tiers (None → none)
+const cumulative = [];
+if (specializationKitLevel !== "None")          cumulative.push("Normal");
+if (["Heroic","Legendary"].includes(specializationKitLevel)) cumulative.push("Heroic");
+if (specializationKitLevel === "Legendary")     cumulative.push("Legendary");
+const levelsToApply = [...new Set(cumulative)];
 
-  // ── 6) Map display names → system.skills keys
+  // ── 7) Map display names → system.skills keys
   const skillKeyMap = {
     // Core
     "Appeal":             "appeal",
@@ -562,9 +578,9 @@
     "Medic (Xenophile)":  "medXenophile"
   };
 
-  // ── 7) Apply to each selected token
-  for (let token of canvas.tokens.controlled) {
-    const actor = token.actor;
+// ── 8 Apply to each selected token
+for (let token of canvas.tokens.controlled) {
+  const actor = token.actor;
 
 // ── A) Remove any existing Spec-Kit abilities & reset those skill trainings ──
 // (1) Build a list of all the kit-provided item names
@@ -593,24 +609,18 @@ if ( Object.keys(resetData).length ) {
   await actor.update(resetData);
 }
     
-// B) Set the Bestiary‐Level → difficulty.tier and then top‐off Wounds ──
-// Map your levels to numeric tiers
-const tierMap = { Easy: 0, Normal: 1, Heroic: 2, Legendary: 3 };
-await actor.update({
-  "system.difficulty.tier": tierMap[bestiaryLevel].toString()
-});
+  // Set the BR (Difficulty Level) → difficulty.tier
+  await actor.update({
+    "system.difficulty.tier": brTierMap[brLevel].toString()
+  });
 
 // Now max out Wounds.
 const maxW = actor.system.wounds.max;   
 await actor.update({ "system.wounds.value": maxW });
 
-    // B) update the sheet’s specialization field
-    await actor.update({ "system.specialization": selectedSpec });
-    ui.notifications.info(`Set specialization → ${selectedSpec}`);
-
-
-
-
+// update the sheet’s specialization field
+  await actor.update({ "system.specialization": `${selectedSpec}/${specializationKitLevel}` });
+  ui.notifications.info(`Set specialization → ${selectedSpec}/${specializationKitLevel}`);
 
     // C) for each tier, loop entries
     for (let lvl of levelsToApply) {
